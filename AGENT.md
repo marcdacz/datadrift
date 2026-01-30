@@ -55,7 +55,7 @@ Cross-module access is allowed only via public service interfaces.
 
 ### 1. Language & Tooling
 
-- Java 17+
+- Java 21+
 - Spring Boot
 - Maven
 - PostgreSQL
