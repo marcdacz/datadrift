@@ -231,35 +231,63 @@ Every automation execution must produce an audit log record containing:
 - React
 - TypeScript
 - Vite
+- ESLint (flat config)
 - Playwright (E2E)
 
-### 2. Component Rules
+### 2. Project Structure
+
+- **Pages**: `src/pages/` — one component per route; each page is the single source of the route view.
+- **Components**: `src/components/` — shared UI; one component per file.
+- **API layer**: `src/api/` — API client functions (fetch wrappers); no business logic, only HTTP and response typing.
+- **Layout, routing, theme**: `src/app/` — app shell, layout, routing config, theme tokens.
+- **Styles**: `src/styles/` for global CSS and variables; CSS Modules (`.module.css`) for component styles.
+
+### 3. Component Rules
 
 - Functional components only
-- One component per file
-- Clear separation between:
-  - Pages
-  - Components
-  - Services (API calls)
+- One component per file; file name matches component name (e.g. `HealthStatus.tsx` exports `HealthStatus`)
+- Clear separation between Pages, Components, and API layer (no business logic in API clients)
 
-### 3. State Management
+### 4. Naming Conventions
+
+| Element           | Convention    | Example                |
+| ----------------- | ------------- | ---------------------- |
+| Components        | PascalCase    | `HealthStatus`, `Sidebar` |
+| Files (components)| PascalCase    | `HealthStatus.tsx`     |
+| API / functions   | camelCase     | `fetchHealth()`        |
+| Constants         | UPPER_SNAKE or `as const` | `HEALTH_URL`, `NAV_ITEMS` |
+| CSS modules       | camelCase classes | `styles.root`, `styles.linkActive` |
+
+### 5. Document Outline and Accessibility
+
+- **One logical h1 per route**: the page title (e.g. "Dashboard", "Settings") is the only h1 on the page.
+- App chrome (logo, app name, sidebar, header) must not use h1; use `<span>`, `<div>`, or appropriate landmarks with `aria-label` where needed.
+- Use semantic HTML and ARIA where it improves accessibility (`nav`, `main`, `role="status"`, `aria-live` for dynamic status).
+
+### 6. State Management
 
 - Local component state preferred
 - No global state library for MVP
 - Lift state only when necessary
 
-### 4. Error Handling
+### 7. Error Handling
 
 All API calls must handle:
 
 - Loading
 - Error
-- Empty states
+- Empty states (where applicable; e.g. empty list vs. failed request)
 
-### 5. Theming
+### 8. Theming
 
-- Light and Dark themes supported
-- Respect system preferences
+- Light and Dark themes supported via CSS variables.
+- Respect system preference: use `prefers-color-scheme: dark` (or equivalent) so theme follows OS setting without requiring a toggle for MVP.
+
+### 9. Linting
+
+- ESLint with flat config (`eslint.config.js`).
+- Run `npm run lint` in the frontend directory before commit; no errors allowed.
+- Rules: TypeScript strict, React and React Hooks recommended; `@typescript-eslint/no-explicit-any`: error; unused vars error (with `argsIgnorePattern` / `varsIgnorePattern` for intentional unused).
 
 ---
 
@@ -314,7 +342,7 @@ Tests must cover:
 Before any commit:
 
 - Backend formatting and linting must pass
-- Frontend linting must pass
+- Frontend: `cd frontend && npm run lint` must pass (no errors)
 - Tests may be optionally skipped locally but must pass in CI
 
 **Commits that violate standards are not acceptable.**
