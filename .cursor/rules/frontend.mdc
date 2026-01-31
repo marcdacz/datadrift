@@ -1,0 +1,44 @@
+---
+description: Frontend (React / TypeScript) structure and conventions
+globs: frontend/src/**/*.ts,frontend/src/**/*.tsx
+alwaysApply: false
+---
+
+# Frontend Conventions
+
+Follow AGENT.md; these are the essentials when editing frontend code.
+
+## Structure
+
+- **Pages**: `src/pages/` — one component per route; file name matches page (e.g. `DashboardPage.tsx`).
+- **Components**: `src/components/` — shared UI; one component per file.
+- **API**: `src/api/` — fetch wrappers and response types only; no business logic.
+- **Layout / routing / theme**: `src/app/` — App shell, routes, theme tokens.
+- **Styles**: `src/styles/` for global CSS; CSS Modules (`.module.css`) next to components.
+
+## Components
+
+- Functional components only.
+- File name = component name (e.g. `HealthStatus.tsx` exports `HealthStatus`).
+- Keep Pages, Components, and API layer clearly separated.
+
+## Naming
+
+- Components and files: PascalCase (`HealthStatus.tsx`, `Sidebar`).
+- API functions and variables: camelCase (`fetchHealth()`).
+- Constants: UPPER_SNAKE_CASE or `as const`.
+- CSS module classes: camelCase (`styles.root`, `styles.linkActive`).
+
+## Accessibility & document outline
+
+- One logical `<h1>` per route (the page title). App chrome (logo, sidebar, header) must not use `<h1>`.
+- Use semantic HTML and ARIA where it helps (`nav`, `main`, `aria-label`, `role="status"` for dynamic content).
+
+## State & API
+
+- Prefer local component state; no global state library for MVP.
+- Every API call must handle: loading, error, and empty states where applicable.
+
+## Linting
+
+- Run `npm run lint` in `frontend/` before commit. No ESLint errors. TypeScript strict; no `any`.

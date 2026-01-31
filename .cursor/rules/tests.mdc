@@ -1,0 +1,40 @@
+---
+description: Testing conventions for backend and frontend tests
+globs: backend/src/test/**/*.java,frontend/e2e/**/*.ts,frontend/**/*.spec.ts,frontend/**/*.test.ts
+alwaysApply: false
+---
+
+# Test Conventions
+
+Follow AGENT.md; these are the essentials when writing or editing tests.
+
+## Backend (Java)
+
+- **Framework**: JUnit 5. REST: Rest Assured.
+- **Naming**: `methodName__when__condition__then__outcome` (e.g. `create__when_valid_body__then_returns_201`).
+- **Immutability**: Use `final` for locals and catch parameters that are assigned once (same as production).
+
+```java
+// ✅ GOOD
+@Test
+void getById__when_not_found__then_returns_404() {
+    given(requestSpec())
+            .when()
+            .get("/api/data-sources/00000000-0000-0000-0000-000000000000")
+            .then()
+            .statusCode(404);
+}
+```
+
+- **Integration tests**: Extend `BaseIntegrationTest`; use `requestSpec()` and `objectMapper()` so base URI/port stay DRY.
+- **Scope**: Unit tests for business logic; integration tests for REST (status, body, error cases).
+
+## Frontend E2E (Playwright)
+
+- **Naming**: `page__when__condition__then__outcome` (e.g. `dashboard__when_loaded__then_shows_title`).
+- Cover: happy path, validation errors, and auth/restrictions where applicable.
+
+## General
+
+- Prefer one clear assertion focus per test where possible.
+- Do not commit tests that skip or are disabled without a tracked reason.

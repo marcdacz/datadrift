@@ -47,6 +47,7 @@ cd backend && mvn spring-boot:run
 ## Verify
 
 - **Health**: `GET http://localhost:8080/api/health` → `{"status":"ok","app":"DataDrift","version":"0.1.0"}`
+- **Data sources**: `GET http://localhost:8080/api/data-sources` (list), `POST /api/data-sources` (create). Sensitive config fields are encrypted at rest and masked in API responses.
 - **Placeholders**: `GET /api/connections`, `/api/views`, `/api/rules`, `/api/executions` → `{"message":"Not implemented yet"}`
 
 ## Configuration
@@ -56,6 +57,20 @@ cd backend && mvn spring-boot:run
 - Tests use profile `test` with H2 in-memory (`application-test.yml`); no PostgreSQL needed for `mvn test`.
 
 Credentials in `application.yml` are for local use only; do not use in production.
+
+### Encryption key (DATADRIFT_ENCRYPTION_KEY)
+
+Data source config stores sensitive values (e.g. database passwords, API tokens) encrypted at rest. The encryption key is required at startup.
+
+- **Purpose**: AES-256-GCM key used to encrypt/decrypt sensitive fields in data source config. If missing or invalid, the application will not start (no silent fallback).
+- **Format**: Base64-encoded, 32 bytes after decoding. Generate a key with:
+  ```bash
+  openssl rand -base64 32
+  ```
+- **Where to set**:
+  - **Environment variable**: `export DATADRIFT_ENCRYPTION_KEY=<your-base64-key>` (recommended for production).
+  - **.env file**: Place a `.env` file at the project root (directory from which you run the app). The backend loads `.env` automatically if present. Use `.env.example` as a template; copy to `.env` and replace `REPLACE_ME` with your key. Do not commit `.env`.
+- For local runs from `backend/`, either put `.env` in `backend/` or export the variable before `mvn spring-boot:run`.
 
 ## Troubleshooting
 

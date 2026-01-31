@@ -1,0 +1,54 @@
+---
+description: Backend (Java / Spring Boot) coding standards and architecture
+globs: backend/**/*.java
+alwaysApply: false
+---
+
+# Backend Conventions
+
+Follow AGENT.md; these are the essentials when editing backend Java.
+
+## Architecture
+
+- **Layers**: Controller → Service → Repository. No business logic in controllers; no layer skipping.
+- **Injection**: Constructor injection only. No `@Autowired` on fields in production code.
+
+```java
+// ✅ GOOD
+public DataSourceService(final DataSourceRepository repo, final EncryptionService enc) {
+    this.repo = repo;
+    this.enc = enc;
+}
+```
+
+## Style & immutability
+
+- **Parameters**: All method parameters must be `final`.
+- **Locals**: Use `final` for every local variable and catch parameter that is assigned once.
+- **Style**: 4 spaces, Egyptian braces, max 120 chars. Enforced by Spotless + Checkstyle (Google Java Style).
+
+```java
+// ✅ GOOD
+public DataSource getById(final UUID id) {
+    final DataSource entity = repository.findById(id).orElseThrow(...);
+    return entity;
+}
+```
+
+## Exceptions & logging
+
+- Do not catch generic `Exception`; use specific types (e.g. `JsonProcessingException`).
+- Use domain exceptions (e.g. `DataSourceNotFoundException`); map them in `GlobalExceptionHandler`.
+- Never log passwords, tokens, or secrets. Use SLF4J only.
+
+## Naming
+
+- Classes: PascalCase. Methods/variables: camelCase. Constants: UPPER_SNAKE_CASE.
+- Packages: lowercase (e.g. `com.datadrift.service`).
+
+## Member order
+
+1. Static fields  
+2. Instance fields  
+3. Constructors  
+4. Methods (grouped by concern)
