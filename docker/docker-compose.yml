@@ -1,0 +1,26 @@
+# DataDrift local development: PostgreSQL only.
+# Used by ddmake run. Matches backend/src/main/resources/application.yml:
+#   jdbc:postgresql://localhost:5432/datadrift, user/password datadrift/datadrift
+# Do not remove Docker volumes on cleanall (per ddmake spec).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: datadrift-postgres
+    environment:
+      POSTGRES_USER: datadrift
+      POSTGRES_PASSWORD: datadrift
+      POSTGRES_DB: datadrift
+    ports:
+      - "5432:5432"
+    volumes:
+      # Named volume so data persists across restarts; ddmake cleanall does not remove it
+      - datadrift_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datadrift -d datadrift"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  datadrift_pgdata:

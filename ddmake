@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+"""
+ddmake - DataDrift developer CLI.
+
+Single entrypoint for backend, frontend, database, and testing workflows.
+Runnable as ./ddmake; uses only Python stdlib. Compatible with macOS and Linux.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import shutil
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+# -----------------------------------------------------------------------------
+# Paths and environment
+# -----------------------------------------------------------------------------
+
+# Repo root: directory containing this script (ddmake lives at repo root).
+REPO_ROOT = Path(__file__).resolve().parent
+BACKEND_DIR = REPO_ROOT / "backend"
+FRONTEND_DIR = REPO_ROOT / "frontend"
+DOCKER_DIR = REPO_ROOT / "docker"
+
+
+def _require_dir(path: Path, name: str) -> None:
+    """Fail fast if path is not an existing directory."""
+    if not path.is_dir():
+        print(f"ddmake: error: {name} not found at {path}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _log(msg: str) -> None:
+    """Print a clear step message to stderr so it doesn't mix with command output."""
+    print(f"[ddmake] {msg}", file=sys.stderr, flush=True)
+
+
+def _wait_for_port(host: str, port: int, timeout_sec: float = 60) -> None:
+    """Poll until port is open or timeout; fail fast with clear error."""
+    deadline = time.monotonic() + timeout_sec
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=2):
+                return
+        except OSError:
+            time.sleep(1)
+    print(f"ddmake: error: {host}:{port} not reachable after {timeout_sec}s", file=sys.stderr)
+    sys.exit(1)
+
+
+def _run(
+    cmd: list[str],
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    check: bool = True,
+    description: str | None = None,
+) -> subprocess.CompletedProcess:
+    """
+    Run a command; fail fast on non-zero exit unless check=False.
+    Uses list form to avoid shell injection. Merges env with current environ.
+    """
+    cwd = cwd or REPO_ROOT
+    full_env = os.environ.copy()
+    if env:
+        full_env.update(env)
+    if description:
+        _log(description)
+    result = subprocess.run(
+        cmd,
+        cwd=cwd,
+        env=full_env,
+        shell=False,
+    )
+    if check and result.returncode != 0:
+        print(
+            f"ddmake: command failed with exit code {result.returncode}: {' '.join(cmd)}",
+            file=sys.stderr,
+        )
+        sys.exit(result.returncode)
+    return result
+
+
+# -----------------------------------------------------------------------------
+# Commands
+# -----------------------------------------------------------------------------
+
+
+def cmd_cleanall(_: argparse.Namespace) -> None:
+    """
+    Remove backend and frontend build artifacts only.
+    Does not remove Docker volumes (per requirement).
+    """
+    _log("cleanall: removing build artifacts (Docker volumes unchanged)")
+
+    # Backend: Maven target/
+    backend_target = BACKEND_DIR / "target"
+    if backend_target.is_dir():
+        _log(f"Removing backend target: {backend_target}")
+        shutil.rmtree(backend_target)
+    else:
+        _log("Backend target/ not present, skipping")
+
+    # Frontend: typical Vite/build output
+    frontend_dist = FRONTEND_DIR / "dist"
+    if frontend_dist.is_dir():
+        _log(f"Removing frontend dist: {frontend_dist}")
+        shutil.rmtree(frontend_dist)
+    else:
+        _log("Frontend dist/ not present, skipping")
+
+    # Frontend: Playwright test artifacts (reports and results)
+    for name in ("playwright-report", "test-results"):
+        path = FRONTEND_DIR / name
+        if path.is_dir():
+            _log(f"Removing frontend {name}: {path}")
+            shutil.rmtree(path)
+
+    # Playwright browsers live in global cache; cleanall does not touch anything outside the project.
+
+    _log("cleanall: done")
+
+
+def cmd_install(_: argparse.Namespace) -> None:
+    """Install backend (Maven) and frontend (npm or pnpm) dependencies."""
+    _require_dir(BACKEND_DIR, "backend")
+    _require_dir(FRONTEND_DIR, "frontend")
+
+    _run(
+        ["mvn", "clean", "install", "-DskipTests"],
+        cwd=BACKEND_DIR,
+        description="Installing backend dependencies (Maven)",
+    )
+    # Prefer pnpm if available, else npm (no external Python deps)
+    frontend_cwd = FRONTEND_DIR
+    if shutil.which("pnpm"):
+        _run(
+            ["pnpm", "install"],
+            cwd=frontend_cwd,
+            description="Installing frontend dependencies (pnpm)",
+        )
+    else:
+        _run(
+            ["npm", "install"],
+            cwd=frontend_cwd,
+            description="Installing frontend dependencies (npm)",
+        )
+    # Playwright E2E tests need browser binaries; install to global cache (shared across projects).
+    _run(
+        ["pnpm", "exec", "playwright", "install"] if shutil.which("pnpm") else ["npx", "playwright", "install"],
+        cwd=frontend_cwd,
+        description="Installing Playwright browsers (Chromium, etc.) for E2E tests",
+    )
+    _log("install: done")
+
+
+def cmd_run(args: argparse.Namespace) -> None:
+    """
+    Start PostgreSQL (Docker Compose), backend on localhost:8080, and frontend dev server.
+    --watch: enable hot reload for backend and frontend (frontend already hot; backend via spring-boot-devtools if present).
+    --clean-db: drop and recreate DB + seed demo data (reserved for later).
+    """
+    _require_dir(BACKEND_DIR, "backend")
+    _require_dir(FRONTEND_DIR, "frontend")
+
+    if not shutil.which("docker"):
+        print("ddmake: error: Docker not found. Install Docker and ensure it is on PATH.", file=sys.stderr)
+        sys.exit(1)
+
+    if args.clean_db:
+        _log("run: --clean-db is reserved for future use (drop/recreate DB + seed)")
+        # Placeholder: we could docker-compose down -v then up, then run migrations/seed later.
+
+    compose_file = DOCKER_DIR / "docker-compose.yml"
+    if not compose_file.is_file():
+        print(f"ddmake: error: docker-compose not found at {compose_file}", file=sys.stderr)
+        sys.exit(1)
+
+    # Start PostgreSQL in background (detached)
+    _run(
+        ["docker", "compose", "-f", str(compose_file), "up", "-d"],
+        cwd=DOCKER_DIR,
+        description="Starting PostgreSQL (Docker Compose)",
+    )
+    _log("Waiting for PostgreSQL on localhost:5432")
+    _wait_for_port("127.0.0.1", 5432)
+
+    # Backend: spring-boot:run (--watch could enable devtools; Spring Boot supports it via optional dependency)
+    backend_cmd = ["mvn", "spring-boot:run"]
+    if args.watch:
+        # Spring Boot DevTools provides hot reload when dependency is present; no extra flag needed.
+        backend_cmd.append("-Dspring-boot.run.jvmArguments=-Dspring.devtools.restart.enabled=true")
+
+    _log("Starting backend on http://localhost:8080 (run in foreground)")
+    # Run backend in foreground; user will see logs. For true parallel run we'd need background + wait.
+    # Requirement: "Start backend on localhost:8080" and "Start frontend on localhost:3000" - run both.
+    # We run backend in background then frontend in foreground so user sees one combined dev experience,
+    # or we run both in background and then wait. Easiest: backend in background, frontend in foreground.
+    backend_proc = subprocess.Popen(
+        backend_cmd,
+        cwd=BACKEND_DIR,
+        env=os.environ.copy(),
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+    )
+
+    # Wait for backend to bind port 8080 before starting frontend (avoids fixed sleep)
+    _log("Waiting for backend on http://localhost:8080")
+    _wait_for_port("127.0.0.1", 8080)
+
+    _log("Starting frontend dev server (foreground)")
+    try:
+        frontend_cmd = ["pnpm", "run", "dev"] if shutil.which("pnpm") else ["npm", "run", "dev"]
+        subprocess.run(frontend_cmd, cwd=FRONTEND_DIR, env=os.environ.copy(), check=False)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        backend_proc.terminate()
+        try:
+            backend_proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            backend_proc.kill()
+            backend_proc.wait()
+
+
+def cmd_test(args: argparse.Namespace) -> None:
+    """
+    Run tests. No args = all. Otherwise: --unit (backend unit), --integration (backend integration), --e2e (frontend E2E).
+    """
+    run_unit = args.unit or (not args.unit and not args.integration and not args.e2e)
+    run_integration = args.integration or (not args.unit and not args.integration and not args.e2e)
+    run_e2e = args.e2e or (not args.unit and not args.integration and not args.e2e)
+
+    # Backend: run unit only (mvn test) or unit+integration (mvn verify) to avoid duplicate runs
+    if run_unit and run_integration:
+        _run(
+            ["mvn", "verify"],
+            cwd=BACKEND_DIR,
+            description="Running backend tests (unit + integration)",
+        )
+    elif run_unit:
+        _run(
+            ["mvn", "test"],
+            cwd=BACKEND_DIR,
+            description="Running backend unit tests",
+        )
+    elif run_integration:
+        _run(
+            ["mvn", "verify"],
+            cwd=BACKEND_DIR,
+            description="Running backend integration tests",
+        )
+
+    if run_e2e:
+        pnpm_or_npm = ["pnpm", "run", "test:e2e"] if shutil.which("pnpm") else ["npm", "run", "test:e2e"]
+        _run(
+            pnpm_or_npm,
+            cwd=FRONTEND_DIR,
+            description="Running E2E tests (Playwright)",
+        )
+    _log("test: done")
+
+
+def cmd_check(_: argparse.Namespace) -> None:
+    """Run backend formatters/linters and frontend lint checks."""
+    _require_dir(BACKEND_DIR, "backend")
+    _require_dir(FRONTEND_DIR, "frontend")
+
+    _run(
+        ["mvn", "validate"],
+        cwd=BACKEND_DIR,
+        description="Backend: Spotless + Checkstyle (validate)",
+    )
+    pnpm_or_npm = ["pnpm", "run", "lint"] if shutil.which("pnpm") else ["npm", "run", "lint"]
+    _run(
+        pnpm_or_npm,
+        cwd=FRONTEND_DIR,
+        description="Frontend: ESLint",
+    )
+    _log("check: done")
+
+
+# -----------------------------------------------------------------------------
+# CLI setup
+# -----------------------------------------------------------------------------
+
+
+def _parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="ddmake",
+        description="DataDrift developer CLI: backend, frontend, database, and testing.",
+        epilog="Run 'ddmake <command> -h' for command-specific help.",
+    )
+    sub = p.add_subparsers(dest="command", metavar="<command>", required=True)
+
+    # cleanall
+    sub.add_parser("cleanall", help="Remove backend and frontend build artifacts (no Docker volumes)")
+
+    # install
+    sub.add_parser("install", help="Install backend (Maven) and frontend (npm/pnpm) dependencies")
+
+    # run
+    run_p = sub.add_parser("run", help="Start PostgreSQL, backend, and frontend dev server")
+    run_p.add_argument(
+        "--watch",
+        action="store_true",
+        help="Enable hot reload for backend and frontend",
+    )
+    run_p.add_argument(
+        "--clean-db",
+        action="store_true",
+        help="Drop and recreate database; seed demo data (reserved for later)",
+    )
+
+    # test
+    test_p = sub.add_parser("test", help="Run tests (unit, integration, e2e)")
+    test_p.add_argument("--unit", action="store_true", help="Backend unit tests only")
+    test_p.add_argument("--integration", action="store_true", help="Backend integration tests only")
+    test_p.add_argument("--e2e", action="store_true", help="Frontend E2E tests only")
+    test_p.epilog = "With no options, all test suites are run."
+
+    # check
+    sub.add_parser("check", help="Run backend and frontend formatters/linters")
+
+    return p
+
+
+def main() -> None:
+    parser = _parser()
+    args = parser.parse_args()
+
+    handlers = {
+        "cleanall": cmd_cleanall,
+        "install": cmd_install,
+        "run": cmd_run,
+        "test": cmd_test,
+        "check": cmd_check,
+    }
+    handler = handlers.get(args.command)
+    if handler:
+        handler(args)
+    else:
+        parser.print_help()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

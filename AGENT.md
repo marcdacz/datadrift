@@ -335,6 +335,11 @@ Tests must cover:
 - `ddmake test --unit --integration --e2e`
 - `ddmake check`
 
+**Notes**
+
+- `ddmake install` also installs Playwright browser binaries to the global cache (shared across projects; required for E2E).
+- `ddmake cleanall` removes only project-related artifacts: backend `target/`, frontend `dist/`, frontend `playwright-report/` and `test-results/`. It does **not** remove Docker volumes or the global Playwright browser cache.
+
 ---
 
 ## Pre-Commit Hooks (Mandatory)
@@ -343,7 +348,7 @@ Before any commit:
 
 - Backend formatting and linting must pass
 - Frontend: `cd frontend && npm run lint` must pass (no errors)
-- Tests may be optionally skipped locally but must pass in CI
+- Run `./ddmake check` to satisfy both; tests may be optionally skipped locally but must pass in CI
 
 **Commits that violate standards are not acceptable.**
 

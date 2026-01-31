@@ -113,3 +113,7 @@ coverage/
 # Optional
 *.local
 .vscode/
+
+# Test reports
+/frontend/playwright-report/
+/frontend/test-results/
