@@ -1,0 +1,27 @@
+.root {
+  max-width: 800px;
+}
+
+.title {
+  margin: 0 0 var(--spacing-lg);
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.formError {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: #fef2f2;
+  border: 1px solid var(--color-status-error);
+  border-radius: var(--radius-md);
+  color: var(--color-status-error);
+  font-size: var(--font-size-sm);
+}
+
+@media (prefers-color-scheme: dark) {
+  .formError {
+    background: rgba(220, 38, 38, 0.15);
+  }
+}

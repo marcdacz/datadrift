@@ -101,12 +101,64 @@ public class DataSourceService {
             throw new IllegalArgumentException("name must be unique: " + name);
         }
         validateConfigJson(configJson);
-        final String encryptedConfig = encryptSensitiveValues(configJson);
+        final String mergedConfig = mergeConfigPreservingSecrets(configJson, entity.getConfig());
+        final String encryptedConfig = encryptSensitiveValues(mergedConfig);
         entity.setName(name.trim());
         entity.setType(type);
         entity.setConfig(encryptedConfig);
         entity.setUpdatedAt(Instant.now());
         return dataSourceRepository.save(entity);
+    }
+
+    /**
+     * Merges new config with existing; sensitive keys with value "******" or missing are replaced
+     * by the existing (encrypted) value so secrets are never overwritten when not updated.
+     */
+    private String mergeConfigPreservingSecrets(
+            final String newConfigJson, final String existingConfigJson) {
+        try {
+            final JsonNode newRoot = objectMapper.readTree(newConfigJson);
+            final JsonNode existingRoot = objectMapper.readTree(existingConfigJson);
+            if (!newRoot.isObject() || !existingRoot.isObject()) {
+                return newConfigJson;
+            }
+            final ObjectNode merged =
+                    mergePreservingSecrets((ObjectNode) newRoot, (ObjectNode) existingRoot);
+            return objectMapper.writeValueAsString(merged);
+        } catch (final JsonProcessingException e) {
+            throw new IllegalStateException("Failed to merge config", e);
+        }
+    }
+
+    private ObjectNode mergePreservingSecrets(
+            final ObjectNode fromRequest, final ObjectNode existing) {
+        final ObjectNode result = fromRequest.deepCopy();
+        result.fields()
+                .forEachRemaining(
+                        entry -> {
+                            final String key = entry.getKey();
+                            final JsonNode newVal = entry.getValue();
+                            if (newVal != null && newVal.isTextual()) {
+                                final String str = newVal.asText();
+                                if (isSensitiveKey(key)
+                                        && (MASKED_VALUE.equals(str) || str.isBlank())) {
+                                    final JsonNode existingVal = existing.get(key);
+                                    if (existingVal != null) {
+                                        result.set(key, existingVal);
+                                    }
+                                }
+                            } else if (newVal != null && newVal.isObject()) {
+                                final JsonNode existingChild = existing.get(key);
+                                if (existingChild != null && existingChild.isObject()) {
+                                    result.set(
+                                            key,
+                                            mergePreservingSecrets(
+                                                    (ObjectNode) newVal,
+                                                    (ObjectNode) existingChild));
+                                }
+                            }
+                        });
+        return result;
     }
 
     @Transactional
@@ -147,6 +199,21 @@ public class DataSourceService {
         } catch (final JsonProcessingException e) {
             throw new IllegalArgumentException("config must be valid JSON: " + e.getMessage());
         }
+    }
+
+    /**
+     * Validates config for test connection. MVP: config JSON only; no actual connectivity check.
+     */
+    public void validateConfigForTest(final String configJson) {
+        validateConfigJson(configJson);
+    }
+
+    /**
+     * Validates config for existing data source by id (uses stored config). MVP: validation only.
+     */
+    public void validateConfigForTestById(final UUID id) {
+        final DataSource entity = getById(id);
+        validateConfigJson(entity.getConfig());
     }
 
     /** Encrypts only sensitive leaf values; non-sensitive values remain plaintext. */

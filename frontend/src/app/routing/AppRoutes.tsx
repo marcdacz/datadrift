@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { DashboardPage } from "../../pages/DashboardPage";
-import { DataSourcesPage } from "../../pages/DataSourcesPage";
+import { DataSourcesListPage } from "../../pages/data-sources/DataSourcesListPage";
+import { DataSourceNewPage } from "../../pages/data-sources/DataSourceNewPage";
+import { DataSourceEditPage } from "../../pages/data-sources/DataSourceEditPage";
 import { DataViewsPage } from "../../pages/DataViewsPage";
 import { AutomationRulesPage } from "../../pages/AutomationRulesPage";
 import { ExecutionsPage } from "../../pages/ExecutionsPage";
@@ -18,7 +20,9 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<DashboardPage />} />
-      <Route path="/data-sources" element={<DataSourcesPage />} />
+      <Route path="/data-sources" element={<DataSourcesListPage />} />
+      <Route path="/data-sources/new" element={<DataSourceNewPage />} />
+      <Route path="/data-sources/:id/edit" element={<DataSourceEditPage />} />
       <Route path="/data-views" element={<DataViewsPage />} />
       <Route path="/automation-rules" element={<AutomationRulesPage />} />
       <Route path="/executions" element={<ExecutionsPage />} />

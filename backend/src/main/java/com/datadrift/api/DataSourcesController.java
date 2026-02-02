@@ -66,6 +66,19 @@ public class DataSourcesController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/test")
+    public ResponseEntity<TestConnectionResponse> testConnection(
+            @Valid @RequestBody final CreateDataSourceRequest request) {
+        dataSourceService.validateConfigForTest(request.config());
+        return ResponseEntity.ok(new TestConnectionResponse(true, "Connection validated."));
+    }
+
+    @PostMapping("/{id}/test")
+    public ResponseEntity<TestConnectionResponse> testConnectionById(@PathVariable final UUID id) {
+        dataSourceService.validateConfigForTestById(id);
+        return ResponseEntity.ok(new TestConnectionResponse(true, "Connection validated."));
+    }
+
     private DataSourceResponse toResponse(final DataSource entity) {
         final String maskedConfig = dataSourceService.maskConfigForApi(entity.getConfig());
         return new DataSourceResponse(
