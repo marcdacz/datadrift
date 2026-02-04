@@ -1,6 +1,15 @@
 import { Link } from "react-router-dom";
 import type { DataSource } from "../../types/dataSources";
-import styles from "./DataSourceTable.module.css";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/common/StatusBadge";
 
 interface DataSourceTableProps {
   dataSources: DataSource[];
@@ -29,67 +38,67 @@ export function DataSourceTable({
   isDeletingId,
 }: DataSourceTableProps) {
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table} role="grid" aria-label="Data sources">
-        <thead>
-          <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Type</th>
-            <th scope="col">Status</th>
-            <th scope="col">Last tested</th>
-            <th scope="col">Created at</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="rounded-md border border-border bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Last tested</TableHead>
+            <TableHead>Created at</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {dataSources.map((ds) => (
-            <tr key={ds.id}>
-              <td>
-                <Link to={`/data-sources/${ds.id}/edit`} className={styles.nameLink}>
+            <TableRow key={ds.id}>
+              <TableCell>
+                <Link
+                  to={`/data-sources/${ds.id}/edit`}
+                  className="font-medium text-primary hover:underline"
+                  aria-label={`Edit ${ds.name}`}
+                >
                   {ds.name}
                 </Link>
-              </td>
-              <td>{ds.type}</td>
-              <td>
-                <span className={styles.badge} aria-label="Status">
-                  —
-                </span>
-              </td>
-              <td>{formatDate(ds.updatedAt)}</td>
-              <td>{formatDate(ds.createdAt)}</td>
-              <td>
-                <div className={styles.actions}>
-                  <Link
-                    to={`/data-sources/${ds.id}/edit`}
-                    className={styles.btnSecondary}
-                    aria-label={`Edit ${ds.name}`}
-                  >
-                    Edit
-                  </Link>
-                  <button
-                    type="button"
-                    className={styles.btnSecondary}
+              </TableCell>
+              <TableCell>{ds.type}</TableCell>
+              <TableCell>
+                <StatusBadge status="neutral" />
+              </TableCell>
+              <TableCell>{formatDate(ds.updatedAt)}</TableCell>
+              <TableCell>{formatDate(ds.createdAt)}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/data-sources/${ds.id}/edit`} aria-label={`Edit ${ds.name}`}>
+                      Edit
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => onTestConnection(ds.id)}
-                    disabled={isTestingId !== null}
+                    disabled={isTestingId === ds.id}
                     aria-label={`Test connection for ${ds.name}`}
                   >
                     {isTestingId === ds.id ? "Testing…" : "Test connection"}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.btnDanger}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
                     onClick={() => onDelete(ds.id)}
-                    disabled={isDeletingId !== null}
+                    disabled={isDeletingId === ds.id}
                     aria-label={`Delete ${ds.name}`}
                   >
                     {isDeletingId === ds.id ? "Deleting…" : "Delete"}
-                  </button>
+                  </Button>
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

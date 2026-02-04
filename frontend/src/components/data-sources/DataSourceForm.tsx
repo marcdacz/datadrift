@@ -3,7 +3,19 @@ import type { DataSourceType, CreateDataSourceRequest } from "../../types/dataSo
 import { ConfigFields, type ConfigFormState } from "./ConfigFields";
 import { buildConfig, parseConfig, validateConfig } from "./configUtils";
 import { testConnection } from "../../api/dataSources";
-import styles from "./DataSourceForm.module.css";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/forms/FormField";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 const DATA_SOURCE_TYPES: DataSourceType[] = ["CSV", "JSON", "DATABASE", "REST"];
 
@@ -156,85 +168,85 @@ export function DataSourceForm({
   );
 
   return (
-    <div className={styles.root}>
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="ds-name" className={styles.label + " " + styles.labelRequired}>
-            Name
-          </label>
-          <input
-            id="ds-name"
-            type="text"
-            className={styles.input + (errors.name ? " " + styles.inputError : "")}
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
-            }}
-            placeholder="My data source"
-            autoComplete="off"
+    <Card className="max-w-2xl">
+      <CardHeader className="sr-only">
+        <h2>{isEdit ? "Edit data source" : "New data source"}</h2>
+      </CardHeader>
+      <CardContent className="pt-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <FormField id="ds-name" label="Name" required error={errors.name}>
+            <Input
+              id="ds-name"
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
+              }}
+              placeholder="My data source"
+              autoComplete="off"
+              className={errors.name ? "border-destructive focus-visible:ring-destructive" : undefined}
+            />
+          </FormField>
+
+          <FormField id="ds-type" label="Data source type" required>
+            <Select value={type} onValueChange={(v) => handleTypeChange(v as DataSourceType)}>
+              <SelectTrigger id="ds-type" aria-label="Data source type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DATA_SOURCE_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t === "REST" ? "REST API" : t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <ConfigFields
+            type={type}
+            state={configState}
+            errors={errors}
+            isEdit={isEdit}
+            updateSecretKeys={updateSecretKeys}
+            onFieldChange={handleConfigFieldChange}
+            onUpdateSecretChange={handleUpdateSecretChange}
           />
-          {errors.name && <span className={styles.errorText}>{errors.name}</span>}
-        </div>
 
-        <div className={styles.fieldGroup}>
-          <label htmlFor="ds-type" className={styles.label + " " + styles.labelRequired}>
-            Data source type
-          </label>
-          <select
-            id="ds-type"
-            className={styles.input}
-            value={type}
-            onChange={(e) => handleTypeChange(e.target.value as DataSourceType)}
-            aria-label="Data source type"
-          >
-            {DATA_SOURCE_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t === "REST" ? "REST API" : t}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <ConfigFields
-          type={type}
-          state={configState}
-          errors={errors}
-          isEdit={isEdit}
-          updateSecretKeys={updateSecretKeys}
-          onFieldChange={handleConfigFieldChange}
-          onUpdateSecretChange={handleUpdateSecretChange}
-        />
-
-        <div className={styles.actions}>
-          <button type="submit" className={styles.primaryButton} disabled={isTesting}>
-            {submitLabel}
-          </button>
-          <button
-            type="button"
-            className={styles.testButton}
-            onClick={handleTestConnection}
-            disabled={isTesting}
-          >
-            {isTesting ? "Testing…" : "Test connection"}
-          </button>
-          <button type="button" className={styles.secondaryButton} onClick={onCancel}>
-            Cancel
-          </button>
-        </div>
-
-        {testResult && (
-          <div
-            className={
-              testResult.success ? styles.testResultSuccess : styles.testResultError
-            }
-            role="status"
-            aria-live="polite"
-          >
-            {testResult.message}
+          <div className="flex items-center gap-3 flex-wrap pt-2">
+            <Button type="submit" disabled={isTesting}>
+              {submitLabel}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleTestConnection}
+              disabled={isTesting}
+            >
+              {isTesting ? "Testing…" : "Test connection"}
+            </Button>
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
           </div>
-        )}
-      </form>
-    </div>
+
+          {testResult && (
+            <Alert
+              variant={testResult.success ? "default" : "destructive"}
+              role="status"
+              aria-live="polite"
+            >
+              {testResult.success ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              ) : (
+                <XCircle className="h-4 w-4" />
+              )}
+              <AlertDescription>{testResult.message}</AlertDescription>
+            </Alert>
+          )}
+        </form>
+      </CardContent>
+    </Card>
   );
 }

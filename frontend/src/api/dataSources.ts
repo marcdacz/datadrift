@@ -9,6 +9,7 @@ import type {
   TestConnectionRequest,
   TestConnectionResponse,
 } from "../types/dataSources";
+import { apiFetch } from "../lib/httpClient";
 
 const BASE = "/api/data-sources";
 
@@ -29,17 +30,17 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function fetchDataSources(): Promise<DataSource[]> {
-  const res = await fetch(BASE, {
+  const res = await apiFetch(BASE, {
     method: "GET",
-    headers: { Accept: "application/json" },
+    authProtected: true,
   });
   return handleResponse<DataSource[]>(res);
 }
 
 export async function fetchDataSourceById(id: string): Promise<DataSource> {
-  const res = await fetch(`${BASE}/${id}`, {
+  const res = await apiFetch(`${BASE}/${id}`, {
     method: "GET",
-    headers: { Accept: "application/json" },
+    authProtected: true,
   });
   return handleResponse<DataSource>(res);
 }
@@ -47,9 +48,10 @@ export async function fetchDataSourceById(id: string): Promise<DataSource> {
 export async function createDataSource(
   body: CreateDataSourceRequest
 ): Promise<DataSource> {
-  const res = await fetch(BASE, {
+  const res = await apiFetch(BASE, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json" },
+    authProtected: true,
     body: JSON.stringify(body),
   });
   return handleResponse<DataSource>(res);
@@ -59,16 +61,20 @@ export async function updateDataSource(
   id: string,
   body: CreateDataSourceRequest
 ): Promise<DataSource> {
-  const res = await fetch(`${BASE}/${id}`, {
+  const res = await apiFetch(`${BASE}/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json" },
+    authProtected: true,
     body: JSON.stringify(body),
   });
   return handleResponse<DataSource>(res);
 }
 
 export async function deleteDataSource(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/${id}`, { method: "DELETE" });
+  const res = await apiFetch(`${BASE}/${id}`, {
+    method: "DELETE",
+    authProtected: true,
+  });
   if (!res.ok) {
     const text = await res.text();
     let message = `Delete failed: ${res.status}`;
@@ -86,18 +92,19 @@ export async function deleteDataSource(id: string): Promise<void> {
 export async function testConnection(
   body: TestConnectionRequest
 ): Promise<TestConnectionResponse> {
-  const res = await fetch(`${BASE}/test`, {
+  const res = await apiFetch(`${BASE}/test`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json" },
+    authProtected: true,
     body: JSON.stringify(body),
   });
   return handleResponse<TestConnectionResponse>(res);
 }
 
 export async function testConnectionById(id: string): Promise<TestConnectionResponse> {
-  const res = await fetch(`${BASE}/${id}/test`, {
+  const res = await apiFetch(`${BASE}/${id}/test`, {
     method: "POST",
-    headers: { Accept: "application/json" },
+    authProtected: true,
   });
   return handleResponse<TestConnectionResponse>(res);
 }

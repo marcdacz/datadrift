@@ -3,7 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DataSourceForm, type DataSourceFormInitial } from "../../components/data-sources/DataSourceForm";
 import { fetchDataSourceById, updateDataSource } from "../../api/dataSources";
 import type { CreateDataSourceRequest } from "../../types/dataSources";
-import styles from "./DataSourceEditPage.module.css";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { XCircle } from "lucide-react";
 
 export function DataSourceEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,33 +38,41 @@ export function DataSourceEditPage() {
 
   if (!id) {
     return (
-      <div className={styles.root}>
-        <h1 className={styles.title}>Edit data source</h1>
-        <p className={styles.error} role="alert">
-          Missing data source ID.
-        </p>
+      <div className="max-w-2xl">
+        <h1 className="text-xl font-semibold text-foreground tracking-tight mb-6">
+          Edit data source
+        </h1>
+        <Alert variant="destructive" role="alert">
+          <XCircle className="h-4 w-4" />
+          <AlertDescription>Missing data source ID.</AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className={styles.root}>
-        <h1 className={styles.title}>Edit data source</h1>
-        <p className={styles.loading} role="status">
-          Loading…
-        </p>
+      <div className="max-w-2xl">
+        <h1 className="text-xl font-semibold text-foreground tracking-tight mb-6">
+          Edit data source
+        </h1>
+        <LoadingSpinner message="Loading…" />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className={styles.root}>
-        <h1 className={styles.title}>Edit data source</h1>
-        <p className={styles.error} role="alert">
-          {error instanceof Error ? error.message : "Data source not found."}
-        </p>
+      <div className="max-w-2xl">
+        <h1 className="text-xl font-semibold text-foreground tracking-tight mb-6">
+          Edit data source
+        </h1>
+        <Alert variant="destructive" role="alert">
+          <XCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error instanceof Error ? error.message : "Data source not found."}
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -74,8 +84,10 @@ export function DataSourceEditPage() {
   };
 
   return (
-    <div className={styles.root}>
-      <h1 className={styles.title}>Edit data source</h1>
+    <div className="max-w-2xl">
+      <h1 className="text-xl font-semibold text-foreground tracking-tight mb-6">
+        Edit data source
+      </h1>
       <DataSourceForm
         mode="edit"
         initial={initial}
@@ -84,11 +96,14 @@ export function DataSourceEditPage() {
         submitLabel="Save"
       />
       {updateMutation.isError && (
-        <p className={styles.submitError} role="alert">
-          {updateMutation.error instanceof Error
-            ? updateMutation.error.message
-            : "Failed to save."}
-        </p>
+        <Alert variant="destructive" className="mt-4" role="alert">
+          <XCircle className="h-4 w-4" />
+          <AlertDescription>
+            {updateMutation.error instanceof Error
+              ? updateMutation.error.message
+              : "Failed to save."}
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );

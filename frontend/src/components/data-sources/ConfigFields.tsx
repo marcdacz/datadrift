@@ -1,6 +1,10 @@
 import type { DataSourceType } from "../../types/dataSources";
 import type { ConfigCsv, ConfigJson, ConfigDatabase, ConfigRest } from "../../types/dataSources";
-import styles from "./DataSourceForm.module.css";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FormField } from "@/components/forms/FormField";
+import { cn } from "@/lib/utils";
 
 const MASKED_PLACEHOLDER = "••••••••";
 
@@ -21,6 +25,9 @@ interface ConfigFieldsProps {
   onUpdateSecretChange: (key: string, checked: boolean) => void;
 }
 
+const sectionClass = "rounded-md border border-border bg-muted/30 p-4 space-y-4";
+const sectionTitleClass = "text-sm font-semibold text-muted-foreground m-0 mb-2";
+
 export function ConfigFields({
   type,
   state,
@@ -33,35 +40,27 @@ export function ConfigFields({
   if (type === "CSV") {
     const c = state.csv ?? {};
     return (
-      <div className={styles.configSection}>
-        <h3 className={styles.configSectionTitle}>CSV configuration</h3>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="config-path" className={styles.label}>
-            Path or URL
-          </label>
-          <input
+      <div className={sectionClass}>
+        <h3 className={sectionTitleClass}>CSV configuration</h3>
+        <FormField id="config-path" label="Path or URL" error={errors.path}>
+          <Input
             id="config-path"
             type="text"
-            className={styles.input}
             value={c.path ?? c.url ?? ""}
             onChange={(e) => onFieldChange("path", e.target.value || undefined)}
             placeholder="/path/to/file.csv or https://..."
+            className={errors.path ? "border-destructive focus-visible:ring-destructive" : undefined}
           />
-          {errors.path && <span className={styles.errorText}>{errors.path}</span>}
-        </div>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="config-encoding" className={styles.label}>
-            Encoding
-          </label>
-          <input
+        </FormField>
+        <FormField id="config-encoding" label="Encoding">
+          <Input
             id="config-encoding"
             type="text"
-            className={styles.input}
             value={c.encoding ?? ""}
             onChange={(e) => onFieldChange("encoding", e.target.value || undefined)}
             placeholder="utf-8"
           />
-        </div>
+        </FormField>
       </div>
     );
   }
@@ -69,35 +68,27 @@ export function ConfigFields({
   if (type === "JSON") {
     const c = state.json ?? {};
     return (
-      <div className={styles.configSection}>
-        <h3 className={styles.configSectionTitle}>JSON configuration</h3>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="config-json-path" className={styles.label}>
-            Path or URL
-          </label>
-          <input
+      <div className={sectionClass}>
+        <h3 className={sectionTitleClass}>JSON configuration</h3>
+        <FormField id="config-json-path" label="Path or URL" error={errors.path}>
+          <Input
             id="config-json-path"
             type="text"
-            className={styles.input}
             value={c.path ?? c.url ?? ""}
             onChange={(e) => onFieldChange("path", e.target.value || undefined)}
             placeholder="/path/to/file.json or https://..."
+            className={errors.path ? "border-destructive focus-visible:ring-destructive" : undefined}
           />
-          {errors.path && <span className={styles.errorText}>{errors.path}</span>}
-        </div>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="config-json-encoding" className={styles.label}>
-            Encoding
-          </label>
-          <input
+        </FormField>
+        <FormField id="config-json-encoding" label="Encoding">
+          <Input
             id="config-json-encoding"
             type="text"
-            className={styles.input}
             value={c.encoding ?? ""}
             onChange={(e) => onFieldChange("encoding", e.target.value || undefined)}
             placeholder="utf-8"
           />
-        </div>
+        </FormField>
       </div>
     );
   }
@@ -105,98 +96,79 @@ export function ConfigFields({
   if (type === "DATABASE") {
     const c = state.database ?? {};
     return (
-      <div className={styles.configSection}>
-        <h3 className={styles.configSectionTitle}>Database configuration</h3>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="config-host" className={styles.label + " " + styles.labelRequired}>
-            Host
-          </label>
-          <input
+      <div className={sectionClass}>
+        <h3 className={sectionTitleClass}>Database configuration</h3>
+        <FormField id="config-host" label="Host" required error={errors.host}>
+          <Input
             id="config-host"
             type="text"
-            className={styles.input + (errors.host ? " " + styles.inputError : "")}
             value={c.host ?? ""}
             onChange={(e) => onFieldChange("host", e.target.value)}
             placeholder="localhost"
+            className={errors.host ? "border-destructive focus-visible:ring-destructive" : undefined}
           />
-          {errors.host && <span className={styles.errorText}>{errors.host}</span>}
-        </div>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="config-port" className={styles.label}>
-            Port
-          </label>
-          <input
+        </FormField>
+        <FormField id="config-port" label="Port">
+          <Input
             id="config-port"
             type="number"
-            className={styles.input}
             value={c.port ?? ""}
             onChange={(e) =>
               onFieldChange("port", e.target.value === "" ? undefined : parseInt(e.target.value, 10))
             }
             placeholder="5432"
           />
-        </div>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="config-database" className={styles.label + " " + styles.labelRequired}>
-            Database
-          </label>
-          <input
+        </FormField>
+        <FormField id="config-database" label="Database" required error={errors.database}>
+          <Input
             id="config-database"
             type="text"
-            className={styles.input + (errors.database ? " " + styles.inputError : "")}
             value={c.database ?? ""}
             onChange={(e) => onFieldChange("database", e.target.value)}
             placeholder="mydb"
+            className={errors.database ? "border-destructive focus-visible:ring-destructive" : undefined}
           />
-          {errors.database && <span className={styles.errorText}>{errors.database}</span>}
-        </div>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="config-username" className={styles.label + " " + styles.labelRequired}>
-            Username
-          </label>
-          <input
+        </FormField>
+        <FormField id="config-username" label="Username" required error={errors.username}>
+          <Input
             id="config-username"
             type="text"
-            className={styles.input + (errors.username ? " " + styles.inputError : "")}
             value={c.username ?? ""}
             onChange={(e) => onFieldChange("username", e.target.value)}
             placeholder="user"
+            className={errors.username ? "border-destructive focus-visible:ring-destructive" : undefined}
           />
-          {errors.username && <span className={styles.errorText}>{errors.username}</span>}
-        </div>
-        <div className={styles.fieldGroup + " " + styles.secretRow}>
-          <label htmlFor="config-password" className={styles.label}>
-            Password
-          </label>
+        </FormField>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="config-password">Password</Label>
           {isEdit && !updateSecretKeys.has("password") ? (
             <>
-              <input
+              <Input
                 id="config-password"
                 type="text"
-                className={styles.input}
                 value=""
                 readOnly
                 placeholder={MASKED_PLACEHOLDER}
                 aria-label="Password (masked)"
               />
-              <div className={styles.checkboxRow}>
-                <input
+              <div className="flex items-center gap-2 pt-1">
+                <Checkbox
                   id="config-update-password"
-                  type="checkbox"
                   checked={updateSecretKeys.has("password")}
-                  onChange={(e) => onUpdateSecretChange("password", e.target.checked)}
+                  onCheckedChange={(checked) =>
+                    onUpdateSecretChange("password", checked === true)
+                  }
                   aria-label="Update password"
                 />
-                <label htmlFor="config-update-password" className={styles.label}>
+                <Label htmlFor="config-update-password" className="font-normal text-sm cursor-pointer">
                   Update secret
-                </label>
+                </Label>
               </div>
             </>
           ) : (
-            <input
+            <Input
               id="config-password"
               type="password"
-              className={styles.input}
               value={state.database?.password ?? ""}
               onChange={(e) => onFieldChange("password", e.target.value || undefined)}
               placeholder={isEdit ? "Enter new password" : "Password"}
@@ -211,55 +183,48 @@ export function ConfigFields({
   if (type === "REST") {
     const c = state.rest ?? {};
     return (
-      <div className={styles.configSection}>
-        <h3 className={styles.configSectionTitle}>REST API configuration</h3>
-        <div className={styles.fieldGroup}>
-          <label htmlFor="config-url" className={styles.label + " " + styles.labelRequired}>
-            URL
-          </label>
-          <input
+      <div className={sectionClass}>
+        <h3 className={sectionTitleClass}>REST API configuration</h3>
+        <FormField id="config-url" label="URL" required error={errors.url}>
+          <Input
             id="config-url"
             type="url"
-            className={styles.input + (errors.url ? " " + styles.inputError : "")}
             value={c.url ?? ""}
             onChange={(e) => onFieldChange("url", e.target.value)}
             placeholder="https://api.example.com"
+            className={errors.url ? "border-destructive focus-visible:ring-destructive" : undefined}
           />
-          {errors.url && <span className={styles.errorText}>{errors.url}</span>}
-        </div>
-        <div className={styles.fieldGroup + " " + styles.secretRow}>
-          <label htmlFor="config-apiKey" className={styles.label}>
-            API Key
-          </label>
+        </FormField>
+        <div className={cn("flex flex-col gap-1.5")}>
+          <Label htmlFor="config-apiKey">API Key</Label>
           {isEdit && !updateSecretKeys.has("apiKey") ? (
             <>
-              <input
+              <Input
                 id="config-apiKey"
                 type="text"
-                className={styles.input}
                 value=""
                 readOnly
                 placeholder={MASKED_PLACEHOLDER}
                 aria-label="API Key (masked)"
               />
-              <div className={styles.checkboxRow}>
-                <input
+              <div className="flex items-center gap-2 pt-1">
+                <Checkbox
                   id="config-update-apiKey"
-                  type="checkbox"
                   checked={updateSecretKeys.has("apiKey")}
-                  onChange={(e) => onUpdateSecretChange("apiKey", e.target.checked)}
+                  onCheckedChange={(checked) =>
+                    onUpdateSecretChange("apiKey", checked === true)
+                  }
                   aria-label="Update API Key"
                 />
-                <label htmlFor="config-update-apiKey" className={styles.label}>
+                <Label htmlFor="config-update-apiKey" className="font-normal text-sm cursor-pointer">
                   Update secret
-                </label>
+                </Label>
               </div>
             </>
           ) : (
-            <input
+            <Input
               id="config-apiKey"
               type="password"
-              className={styles.input}
               value={state.rest?.apiKey ?? ""}
               onChange={(e) => onFieldChange("apiKey", e.target.value || undefined)}
               placeholder={isEdit ? "Enter new API key" : "API key"}
@@ -267,39 +232,36 @@ export function ConfigFields({
             />
           )}
         </div>
-        <div className={styles.fieldGroup + " " + styles.secretRow}>
-          <label htmlFor="config-token" className={styles.label}>
-            Bearer Token (alternative)
-          </label>
+        <div className={cn("flex flex-col gap-1.5")}>
+          <Label htmlFor="config-token">Bearer Token (alternative)</Label>
           {isEdit && !updateSecretKeys.has("token") ? (
             <>
-              <input
+              <Input
                 id="config-token"
                 type="text"
-                className={styles.input}
                 value=""
                 readOnly
                 placeholder={MASKED_PLACEHOLDER}
                 aria-label="Token (masked)"
               />
-              <div className={styles.checkboxRow}>
-                <input
+              <div className="flex items-center gap-2 pt-1">
+                <Checkbox
                   id="config-update-token"
-                  type="checkbox"
                   checked={updateSecretKeys.has("token")}
-                  onChange={(e) => onUpdateSecretChange("token", e.target.checked)}
+                  onCheckedChange={(checked) =>
+                    onUpdateSecretChange("token", checked === true)
+                  }
                   aria-label="Update token"
                 />
-                <label htmlFor="config-update-token" className={styles.label}>
+                <Label htmlFor="config-update-token" className="font-normal text-sm cursor-pointer">
                   Update secret
-                </label>
+                </Label>
               </div>
             </>
           ) : (
-            <input
+            <Input
               id="config-token"
               type="password"
-              className={styles.input}
               value={state.rest?.token ?? ""}
               onChange={(e) => onFieldChange("token", e.target.value || undefined)}
               placeholder={isEdit ? "Enter new token" : "Bearer token"}

@@ -3,33 +3,64 @@ import { DashboardPage } from "../../pages/DashboardPage";
 import { DataSourcesListPage } from "../../pages/data-sources/DataSourcesListPage";
 import { DataSourceNewPage } from "../../pages/data-sources/DataSourceNewPage";
 import { DataSourceEditPage } from "../../pages/data-sources/DataSourceEditPage";
-import { DataViewsPage } from "../../pages/DataViewsPage";
-import { AutomationRulesPage } from "../../pages/AutomationRulesPage";
-import { ExecutionsPage } from "../../pages/ExecutionsPage";
-import { ReportsPage } from "../../pages/ReportsPage";
-import { TemplatesPage } from "../../pages/TemplatesPage";
-import { AuditLogsPage } from "../../pages/AuditLogsPage";
-import { SettingsPage } from "../../pages/SettingsPage";
+import { LoginPage } from "../../pages/auth/LoginPage";
+import { RequireAuth } from "./RequireAuth";
+import { RequireRole } from "./RequireRole";
 
 /**
- * Route definitions. Each sidebar item maps to a route.
- * Default route goes to Dashboard.
+ * Route definitions.
+ * - `/login` is public.
+ * - All other routes require authentication.
+ * - Settings and certain sections are further gated by role.
  * TODO: Add lazy loading, 404 page.
  */
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<DashboardPage />} />
-      <Route path="/data-sources" element={<DataSourcesListPage />} />
-      <Route path="/data-sources/new" element={<DataSourceNewPage />} />
-      <Route path="/data-sources/:id/edit" element={<DataSourceEditPage />} />
-      <Route path="/data-views" element={<DataViewsPage />} />
-      <Route path="/automation-rules" element={<AutomationRulesPage />} />
-      <Route path="/executions" element={<ExecutionsPage />} />
-      <Route path="/reports" element={<ReportsPage />} />
-      <Route path="/templates" element={<TemplatesPage />} />
-      <Route path="/audit-logs" element={<AuditLogsPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/login" element={<LoginPage />} />
+
+      <Route
+        path="/"
+        element={(
+          <RequireAuth>
+            <DashboardPage />
+          </RequireAuth>
+        )}
+      />
+      <Route
+        path="/data-sources"
+        element={(
+          <RequireAuth>
+            <RequireRole allowedRoles={["admin"]}>
+              <DataSourcesListPage />
+            </RequireRole>
+          </RequireAuth>
+        )}
+      />
+      <Route
+        path="/data-sources/new"
+        element={(
+          <RequireAuth>
+            <RequireRole allowedRoles={["admin"]}>
+              <DataSourceNewPage />
+            </RequireRole>
+          </RequireAuth>
+        )}
+      />
+      <Route
+        path="/data-sources/:id/edit"
+        element={(
+          <RequireAuth>
+            <RequireRole allowedRoles={["admin"]}>
+              <DataSourceEditPage />
+            </RequireRole>
+          </RequireAuth>
+        )}
+      />
+      <Route
+        path="/data-views"
+        element={<Navigate to="/" replace />}
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

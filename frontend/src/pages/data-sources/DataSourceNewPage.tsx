@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { DataSourceForm } from "../../components/data-sources/DataSourceForm";
 import { createDataSource } from "../../api/dataSources";
 import type { CreateDataSourceRequest } from "../../types/dataSources";
-import styles from "./DataSourceNewPage.module.css";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { XCircle } from "lucide-react";
 
 export function DataSourceNewPage() {
   const navigate = useNavigate();
@@ -26,8 +27,10 @@ export function DataSourceNewPage() {
   }
 
   return (
-    <div className={styles.root}>
-      <h1 className={styles.title}>Add data source</h1>
+    <div className="max-w-2xl">
+      <h1 className="text-xl font-semibold text-foreground tracking-tight mb-6">
+        Add data source
+      </h1>
       <DataSourceForm
         mode="create"
         onSubmit={handleSubmit}
@@ -35,11 +38,14 @@ export function DataSourceNewPage() {
         submitLabel="Create"
       />
       {createMutation.isError && (
-        <p className={styles.formError} role="alert">
-          {createMutation.error instanceof Error
-            ? createMutation.error.message
-            : "Failed to create data source."}
-        </p>
+        <Alert variant="destructive" className="mt-4" role="alert">
+          <XCircle className="h-4 w-4" />
+          <AlertDescription>
+            {createMutation.error instanceof Error
+              ? createMutation.error.message
+              : "Failed to create data source."}
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );
